@@ -1,0 +1,174 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "description": "Smart parking api. You can check our app from app.i-parking.ir",
+    "version": "1.0.0",
+    "title": "i-Park API"
+  },
+  "servers": [
+    {
+      "url": "https://api.ipark.ir/",
+      "description": "API server"
+    }
+  ],
+  "tags": [
+  ],
+  "components": {
+    "schemas": {
+      "Parking": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "guid": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "address": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "total_capacity": {
+            "type": "integer"
+          },
+          "free_capacity": {
+            "type": "integer"
+          },
+          "reserved_capacity": {
+            "type": "integer"
+          },
+          "reserved_free_capacity": {
+            "type": "integer"
+          },
+
+          "latitude": {
+            "type": "number"
+          },
+          "longitude": {
+            "type": "number"
+          },
+          "cost": {
+            "type": "number"
+          },
+          "working_hours": {
+            "type": "string"
+          },
+          "working_days": {
+            "type": "string"
+          },
+
+          "picture": {
+            "type": "string"
+          },
+          "owner_id": {
+            "type": "integer"
+          }
+        }
+      },
+      "User":{
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer"
+          },
+          "guid" : {
+            "type": "string"
+          },
+          "name" : {
+            "type": "string"
+          },
+          "email" : {
+            "type": "string"
+          },
+          "phone" : {
+            "type": "string"
+          },
+          "password" : {
+            "type": "string"
+          },
+          "address" : {
+            "type": "string"
+          },
+          "city" : {
+            "type": "string"
+          },
+          "role" : {
+            "type" : "string"
+          }
+        }
+      },
+      "Reservation":{
+        "type": "object",
+        "properties" :{
+          "id" : {
+            "type" : "integer"
+          },
+            "guid" : {
+                "type": "string"
+            },
+            "parking_id" : {
+                "type": "integer"
+            },
+            "user" : {
+                "type": "integer"
+            },
+            "start_time" : {
+                "type": "string"
+            },
+            "end_time" : {
+                "type": "string"
+            },
+            "cost" : {
+                "type": "number"
+            },
+            "status" : {
+                "type": "string"
+            },
+          "paid" : {
+            "type": "boolean"
+          },
+            "created_at" : {
+                "type": "string"
+            }
+        }
+      },
+      "Car": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "guid": {
+            "type": "string"
+          },
+          "license_plate": {
+            "type": "string"
+          },
+          "user": {
+            "type": "integer"
+          },
+          "model": {
+            "type": "string"
+          },
+            "color": {
+                "type": "string"
+            }
+        }
+      }
+    }
+  },
+  "paths": {
+
+  }
+  }
