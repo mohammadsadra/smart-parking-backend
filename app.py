@@ -83,27 +83,27 @@ class SavedLocation(db.Model):
     city = Column(String, nullable=False)
     latitude = Column(Float, nullable=False)
     longitude = Column(Float, nullable=False)
-    user = Column(Integer, ForeignKey('User.id'), nullable=False)
+    user_id = Column(Integer, ForeignKey('User.id'), nullable=False)
 
 class SavedParking(db.Model):
     __tablename__ = 'SavedParking'
     id = Column(Integer, primary_key=True)
     guid = Column(String, unique=True)
-    parking = Column(Integer, ForeignKey('Parking.id'), nullable=False)
-    user = Column(Integer, ForeignKey('User.id'), nullable=False)
-
-class Reservation(db.Model):
-    __tablename__ = 'Reservation'
-    id = Column(Integer, primary_key=True)
-    guid = Column(String, unique=True)
     parking_id = Column(Integer, ForeignKey('Parking.id'), nullable=False)
-    user = Column(Integer, ForeignKey('User.id'), nullable=False)
-    start_time = Column(DateTime, nullable=False)
-    end_time = Column(DateTime, nullable=False)
-    cost = Column(Float, nullable=False)
-    paid = Column(Boolean, nullable=False)
-    status = Column(String, nullable=False)
-    created_at = Column(DateTime, nullable=False)
+    user_id = Column(Integer, ForeignKey('User.id'), nullable=False)
+
+# class Reservation(db.Model):
+#     __tablename__ = 'Reservation'
+#     id = Column(Integer, primary_key=True)
+#     guid = Column(String, unique=True)
+#     parking_id = Column(Integer, ForeignKey('Parking.id'), nullable=False)
+#     user = Column(Integer, ForeignKey('User.id'), nullable=False)
+#     start_time = Column(DateTime, nullable=False)
+#     end_time = Column(DateTime, nullable=False)
+#     cost = Column(Float, nullable=False)
+#     paid = Column(Boolean, nullable=False)
+#     status = Column(String, nullable=False)
+#     created_at = Column(DateTime, nullable=False)
 
 class Car(db.Model):
     __tablename__ = 'car'
@@ -276,88 +276,6 @@ def delete_user(id):
     except Exception as e:
         return jsonify({'error': str(e)})
 
-
-##################################################################
-#####################        RESERVATION    #####################
-##################################################################
-@app.route("/reservation/getall", methods=['GET'])
-def get_all_reservation():
-    try:
-        reservations = Reservation.query.all()
-        result = Reservation.dump(reservations)
-        return jsonify(result)
-    except Exception as e:
-        return jsonify({'error': str(e)})
-
-@app.route("/reservation/get/<id>", methods=['GET'])
-def get_reservation(id):
-    try:
-        reservation = Reservation.query.filter_by(guid=id).first()
-        result = Reservation.dump(reservation)
-        return jsonify(result)
-    except Exception as e:
-        return jsonify({'error': str(e)})
-
-@app.route("/reservation/getUserReservations/<userid>", methods=['GET'])
-def get_user_reservations(userid):
-    try:
-        reservations = Reservation.query.filter_by(user_id=userid).all()
-        result = Reservation.dump(reservations)
-        return jsonify(result)
-    except Exception as e:
-        return jsonify({'error': str(e)})
-
-@app.route("/reservation/add", methods=['POST'])
-def add_reservation():
-    try:
-        data = request.get_json()
-        reservation = Reservation(
-            guid=data['guid'],
-            parking_id=data['parking_id'],
-            user_id=data['user_id'],
-            start_time=data['start_time'],
-            end_time=data['end_time'],
-            status=data['status'],
-            created_at=data['created_at'],
-            paid=data['paid'],
-            cost=data['cost']
-
-        )
-        db.session.add(reservation)
-        db.session.commit()
-        return jsonify({'message': 'Reservation added successfully'})
-    except Exception as e:
-        return jsonify({'error': str(e)})
-
-@app.route("/reservation/update", methods=['PUT'])
-def update_reservation():
-    try:
-        data = request.get_json()
-        reservation = Reservation.query.filter_by(guid=data['guid']).first()
-        reservation.parking_id = data['parking_id']
-        reservation.user_id = data['user_id']
-        reservation.start_time = data['start_time']
-        reservation.end_time = data['end_time']
-        reservation.status = data['status']
-        db.session.commit()
-        return jsonify({'message': 'Reservation updated successfully'})
-    except Exception as e:
-        return jsonify({'error': str(e)})
-
-@app.route("/reservation/delete/<id>", methods=['DELETE'])
-def delete_reservation(id):
-    try:
-        reservation = Reservation.query.filter_by(guid=id).first()
-        db.session.delete(reservation)
-        db.session.commit()
-        return jsonify({'message': 'Reservation deleted successfully'})
-    except Exception as e:
-        return jsonify({'error': str(e)})
-
-
-##################################################################
-#####################        CARS    #####################
-##################################################################
 @app.route("/car/get/<id>", methods=['GET'])
 def get_car(id):
     try:
@@ -466,3 +384,105 @@ def get_all_saved_location(userid):
         return jsonify(result)
     except Exception as e:
         return jsonify({'error': str(e)})
+
+@app.route("/savedlocation/add", methods=['POST'])
+def add_saved_location():
+    try:
+        data = request.get_json()
+        userSavedLocation = SavedLocation(
+            guid=data['guid'],
+            user_id=data['user_id'],
+            name=data['name'],
+            address=data['address'],
+            city=data['city'],
+            latitude=data['latitude'],
+            longitude=data['longitude']
+        )
+        db.session.add(userSavedLocation)
+        db.session.commit()
+        return jsonify({'message': 'UserSavedLocation added successfully'})
+    except Exception as e:
+        return jsonify({'error': str(e)})
+
+
+##################################################################
+#####################        RESERVATION    #####################
+##################################################################
+# @app.route("/reservation/getall", methods=['GET'])
+# def get_all_reservation():
+#     try:
+#         reservations = Reservation.query.all()
+#         result = Reservation.dump(reservations)
+#         return jsonify(result)
+#     except Exception as e:
+#         return jsonify({'error': str(e)})
+#
+# @app.route("/reservation/get/<id>", methods=['GET'])
+# def get_reservation(id):
+#     try:
+#         reservation = Reservation.query.filter_by(guid=id).first()
+#         result = Reservation.dump(reservation)
+#         return jsonify(result)
+#     except Exception as e:
+#         return jsonify({'error': str(e)})
+#
+# @app.route("/reservation/getUserReservations/<userid>", methods=['GET'])
+# def get_user_reservations(userid):
+#     try:
+#         reservations = Reservation.query.filter_by(user_id=userid).all()
+#         result = Reservation.dump(reservations)
+#         return jsonify(result)
+#     except Exception as e:
+#         return jsonify({'error': str(e)})
+#
+# @app.route("/reservation/add", methods=['POST'])
+# def add_reservation():
+#     try:
+#         data = request.get_json()
+#         reservation = Reservation(
+#             guid=data['guid'],
+#             parking_id=data['parking_id'],
+#             user_id=data['user_id'],
+#             start_time=data['start_time'],
+#             end_time=data['end_time'],
+#             status=data['status'],
+#             created_at=data['created_at'],
+#             paid=data['paid'],
+#             cost=data['cost']
+#
+#         )
+#         db.session.add(reservation)
+#         db.session.commit()
+#         return jsonify({'message': 'Reservation added successfully'})
+#     except Exception as e:
+#         return jsonify({'error': str(e)})
+#
+# @app.route("/reservation/update", methods=['PUT'])
+# def update_reservation():
+#     try:
+#         data = request.get_json()
+#         reservation = Reservation.query.filter_by(guid=data['guid']).first()
+#         reservation.parking_id = data['parking_id']
+#         reservation.user_id = data['user_id']
+#         reservation.start_time = data['start_time']
+#         reservation.end_time = data['end_time']
+#         reservation.status = data['status']
+#         db.session.commit()
+#         return jsonify({'message': 'Reservation updated successfully'})
+#     except Exception as e:
+#         return jsonify({'error': str(e)})
+#
+# @app.route("/reservation/delete/<id>", methods=['DELETE'])
+# def delete_reservation(id):
+#     try:
+#         reservation = Reservation.query.filter_by(guid=id).first()
+#         db.session.delete(reservation)
+#         db.session.commit()
+#         return jsonify({'message': 'Reservation deleted successfully'})
+#     except Exception as e:
+#         return jsonify({'error': str(e)})
+
+
+##################################################################
+#####################        CARS    #####################
+##################################################################
