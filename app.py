@@ -14,6 +14,7 @@ from datetime import datetime, timedelta
 # import jwt
 from functools import wraps
 from flask_swagger_ui import get_swaggerui_blueprint
+import uuid
 
 
 # Swagger configs
@@ -241,8 +242,49 @@ def delete_parking(id):
 def get_all_user():
     try:
         users = User.query.all()
-        result = User.dump(users)
-        return jsonify(result)
+        all = []
+        for item in users:
+            all.append({
+                'guid': item.guid,
+                'name': item.name,
+                'email': item.email,
+                'phone': item.phone,
+                'address': item.address,
+                'city': item.city,
+                'role': item.role
+            })
+
+    except Exception as ex:
+        resp = make_response(jsonify({'message': 'Bad request.'}), 400)
+        return resp
+
+    resp = make_response(jsonify({'allUser': all}), 200)
+    return resp
+
+@app.route("/user/loginregister", methods=['POST'])
+def login_register():
+    try:
+        data = request.get_json()
+        user = User.query.filter_by(email=data['email']).first()
+        if user != None:
+            if user.password == data['password']:
+                return jsonify({'register': False, 'login': True})
+            else:
+                return jsonify({'register': False, 'login': False})
+        else:
+            new = User(
+                guid=str(uuid.uuid4()),
+                name='',
+                email=data['email'],
+                password=data['password'],
+                phone='',
+                address='',
+                city='Tehran',
+                role='Normal'
+            )
+            db.session.add(new)
+            db.session.commit()
+            return jsonify({'register': True, 'login': True})
     except Exception as e:
         return jsonify({'error': str(e)})
 
@@ -299,6 +341,9 @@ def delete_user(id):
         return jsonify({'message': 'User deleted successfully'})
     except Exception as e:
         return jsonify({'error': str(e)})
+
+
+
 
 @app.route("/car/get/<id>", methods=['GET'])
 def get_car(id):
