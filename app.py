@@ -245,6 +245,7 @@ def get_all_user():
         all = []
         for item in users:
             all.append({
+                'id': item.id,
                 'guid': item.guid,
                 'name': item.name,
                 'email': item.email,
@@ -268,7 +269,17 @@ def login_register():
         user = User.query.filter_by(email=data['email']).first()
         if user != None:
             if user.password == data['password']:
-                return jsonify({'register': False, 'login': True})
+                return jsonify(
+                    {'register': False, 'login': True, 'user': {
+                    'id': user.id,
+                    'guid': user.guid,
+                    'name': user.name,
+                    'email': user.email,
+                    'phone': user.phone,
+                    'address': user.address,
+                    'city': user.city,
+                    'role': user.role
+                    }})
             else:
                 return jsonify({'register': False, 'login': False})
         else:
@@ -284,7 +295,17 @@ def login_register():
             )
             db.session.add(new)
             db.session.commit()
-            return jsonify({'register': True, 'login': True})
+            user = User.query.filter_by(email=data['email']).first()
+            return jsonify({'register': True, 'login': True,  'user': {
+                'id': user.id,
+                'guid': user.guid,
+                'name': user.name,
+                'email': user.email,
+                'phone': user.phone,
+                'address': user.address,
+                'city': user.city,
+                'role': user.role
+            }})
     except Exception as e:
         return jsonify({'error': str(e)})
 
