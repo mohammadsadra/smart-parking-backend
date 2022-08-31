@@ -130,10 +130,34 @@ class Car(db.Model):
 def get_all_parking():
     try:
         parkings = Parking.query.all()
-        result = Parking.dump(parkings)
-        return jsonify(result)
-    except Exception as e:
-        return jsonify({'error': str(e)})
+        all = []
+        for item in parkings:
+            all.append({
+                'guid': item.guid,
+                'name': item.name,
+                'description': item.description,
+                'address': item.address,
+                'city': item.city,
+                'phone': item.phone,
+                'total_capacity': item.total_capacity,
+                'free_capacity': item.free_capacity,
+                'reserved_capacity': item.reserved_capacity,
+                'reserved_free_capacity': item.reserved_free_capacity,
+                'latitude': item.latitude,
+                'longitude': item.longitude,
+                'cost': item.cost,
+                'working_hours': item.working_hours,
+                'working_days': item.working_days,
+                'picture': item.picture,
+                'owner_id': item.owner_id
+            })
+
+    except Exception as ex:
+        resp = make_response(jsonify({'message': 'Bad request.'}), 400)
+        return resp
+
+    resp = make_response(jsonify({'allParking': all}), 200)
+    return resp
 
 @app.route("/parking/get/<id>", methods=['GET'])
 def get_parking(id):
