@@ -15,6 +15,99 @@ from datetime import datetime, timedelta
 from functools import wraps
 from flask_swagger_ui import get_swaggerui_blueprint
 import uuid
+import time
+import paho.mqtt.client as paho
+from paho import mqtt
+
+
+# setting callbacks for different events to see if it works, print the message etc.
+def on_connect(client, userdata, flags, rc, properties=None):
+    print("CONNACK received with code %s." % rc)
+
+
+# with this callback you can see if your publish was successful
+def on_publish(client, userdata, mid, properties=None):
+    print("mid: " + str(mid) + str(client))
+
+
+# print which topic was subscribed to
+def on_subscribe(client, userdata, mid, granted_qos, properties=None):
+    print("Subscribed: " + str(mid) + " " + str(granted_qos))
+
+
+# print message, useful for checking if it was successful
+def on_message(client, userdata, msg):
+    global lastCardIdReceived
+    global lastUserId
+    global turnOn
+    # print(msg.topic + " " + str(msg.qos) + " " + str(msg.payload))
+    # print("message received ", str(msg.payload.decode("utf-8")))
+    # print("message topic=", msg.topic)
+    # print("message qos=", msg.qos)
+    # print("message retain flag=", msg.retain)
+
+    if msg.topic == 'ipark/park1':
+        print("its about park1")
+        if str(msg.payload.decode("utf-8")) == '1':
+            cap = update_parking_capacity(-1, 1)
+            print("park1 is filled")
+            client.publish("ipark/getMessage", payload=str(cap), qos=1)
+        elif str(msg.payload.decode("utf-8")) == '0':
+            cap = update_parking_capacity(1, 1)
+            client.publish("ipark/getMessage", payload=str(cap), qos=1)
+            print('park1 is free')
+
+
+
+
+    # if msg.topic == 'ipark/park1':
+    #     print('park status updated!')
+    #     if str(lastCardIdReceived) == str(msg.payload) and turnOn:
+    #         client.publish("smartoffice/light", payload="0.0", qos=1)
+    #         turnOn = False
+    #
+    #     lastCardIdReceived = int(msg.payload)
+    # if msg.topic == 'smartoffice/guid':
+    #     print('guid updated')
+    #     lastUserId = str(msg.payload).split("'")[1]
+    #     turnOn = True
+
+
+# using MQTT version 5 here, for 3.1.1: MQTTv311, 3.1: MQTTv31
+# userdata is user defined data of any type, updated by user_data_set()
+# client_id is the given name of the client
+client = paho.Client(client_id="", userdata=None, protocol=paho.MQTTv5)
+client.on_connect = on_connect
+
+# enable TLS for secure connection
+client.tls_set(tls_version=mqtt.client.ssl.PROTOCOL_TLS)
+# set username and password
+client.username_pw_set("ipark", "Roghaye99")
+# connect to HiveMQ Cloud on port 8883 (default for MQTT)
+client.connect("8f8cd509697c4a1082e038331baa9680.s2.eu.hivemq.cloud", 8883)
+
+
+# setting callbacks, use separate functions like above for better visibility
+client.on_subscribe = on_subscribe
+client.on_message = on_message
+client.on_publish = on_publish
+
+# subscribe to all topics of encyclopedia by using the wildcard "#"
+client.subscribe("ipark/#", qos=1)
+
+# a single publish, this can also be done in loops, etc.
+
+
+# loop_forever for simplicity, here you need to stop the loop manually
+# you can also use loop_start(run in background and doesn't block traffic) and loop_stop
+client.loop_start()
+
+
+
+
+
+
+
 
 
 # Swagger configs
@@ -233,6 +326,17 @@ def delete_parking(id):
         return jsonify({'message': 'Parking deleted successfully'})
     except Exception as e:
         return jsonify({'error': str(e)})
+
+
+def update_parking_capacity(capacity, parking_id):
+    parking = Parking.query.filter_by(id=parking_id).first()
+    send_capacity = parking.free_capacity + capacity
+    parking.free_capacity = send_capacity
+    db.session.commit()
+    print('parking capacity updated : ', send_capacity)
+    return send_capacity
+
+
 
 
 ##################################################################
