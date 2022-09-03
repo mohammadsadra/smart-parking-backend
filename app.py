@@ -1,21 +1,12 @@
 from flask import Flask, jsonify, make_response, request
-
-import time
-# import paho.mqtt.client as paho
-# from paho import mqtt
-import requests
 import os
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import Column, String, Integer, Boolean, DateTime, Float, ForeignKey, true
 from flask_restful import Api, Resource
 from flask_cors import CORS
-from sqlalchemy.orm import backref
-from datetime import datetime, timedelta
-# import jwt
-from functools import wraps
+from datetime import datetime
 from flask_swagger_ui import get_swaggerui_blueprint
 import uuid
-import time
 import paho.mqtt.client as paho
 from paho import mqtt
 
@@ -186,18 +177,17 @@ class SavedParking(db.Model):
     parking_id = Column(Integer, ForeignKey('Parking.id'), nullable=False)
     user_id = Column(Integer, ForeignKey('User.id'), nullable=False)
 
-# class Reservation(db.Model):
-#     __tablename__ = 'Reservation'
-#     id = Column(Integer, primary_key=True)
-#     guid = Column(String, unique=True)
-#     parking_id = Column(Integer, ForeignKey('Parking.id'), nullable=False)
-#     user = Column(Integer, ForeignKey('User.id'), nullable=False)
-#     start_time = Column(DateTime, nullable=False)
-#     end_time = Column(DateTime, nullable=False)
-#     cost = Column(Float, nullable=False)
-#     paid = Column(Boolean, nullable=False)
-#     status = Column(String, nullable=False)
-#     created_at = Column(DateTime, nullable=False)
+class Reservation(db.Model):
+    __tablename__ = 'Reservation'
+    id = Column(Integer, primary_key=True)
+    guid = Column(String, unique=True)
+    parking_id = Column(Integer, ForeignKey('Parking.id'), nullable=False)
+    user = Column(Integer, ForeignKey('User.id'), nullable=False)
+    start_time = Column(DateTime, nullable=False)
+    end_time = Column(DateTime, nullable=False)
+    cost = Column(Float, nullable=False)
+    paid = Column(Boolean, nullable=True)
+    status = Column(String, nullable=True)
 
 class Car(db.Model):
     __tablename__ = 'car'
@@ -227,6 +217,7 @@ def get_all_parking():
         all = []
         for item in parkings:
             all.append({
+                'id':item.id,
                 'guid': item.guid,
                 'name': item.name,
                 'description': item.description,
@@ -611,46 +602,102 @@ def add_saved_location():
 #     except Exception as e:
 #         return jsonify({'error': str(e)})
 #
-# @app.route("/reservation/get/<id>", methods=['GET'])
-# def get_reservation(id):
-#     try:
-#         reservation = Reservation.query.filter_by(guid=id).first()
-#         result = Reservation.dump(reservation)
-#         return jsonify(result)
-#     except Exception as e:
-#         return jsonify({'error': str(e)})
-#
-# @app.route("/reservation/getUserReservations/<userid>", methods=['GET'])
-# def get_user_reservations(userid):
-#     try:
-#         reservations = Reservation.query.filter_by(user_id=userid).all()
-#         result = Reservation.dump(reservations)
-#         return jsonify(result)
-#     except Exception as e:
-#         return jsonify({'error': str(e)})
-#
-# @app.route("/reservation/add", methods=['POST'])
-# def add_reservation():
-#     try:
-#         data = request.get_json()
-#         reservation = Reservation(
-#             guid=data['guid'],
-#             parking_id=data['parking_id'],
-#             user_id=data['user_id'],
-#             start_time=data['start_time'],
-#             end_time=data['end_time'],
-#             status=data['status'],
-#             created_at=data['created_at'],
-#             paid=data['paid'],
-#             cost=data['cost']
-#
-#         )
-#         db.session.add(reservation)
-#         db.session.commit()
-#         return jsonify({'message': 'Reservation added successfully'})
-#     except Exception as e:
-#         return jsonify({'error': str(e)})
-#
+@app.route("/reservation/get/<id>", methods=['GET'])
+def get_reservation(id):
+    try:
+        reservation = Reservation.query.filter_by(id=id).first()
+
+    except Exception as ex:
+        resp = make_response(jsonify({'message': 'Bad request.'}), 400)
+        return resp
+
+    resp = make_response(jsonify({'value': {
+        'id': reservation.id,
+        'guid': reservation.guid,
+        'parking_id': reservation.parking_id,
+        'user': reservation.user,
+        'start_time': reservation.start_time,
+        'end_time': reservation.end_time,
+        'cost': reservation.cost,
+        'paid': reservation.paid,
+        'status': reservation.status
+    }}), 200)
+    return resp
+
+@app.route("/reservation/add", methods=['POST'])
+def add_reservation():
+    try:
+        guid = str(uuid.uuid4())
+        data = request.get_json()
+        reservation = Reservation(
+            guid=guid,
+            parking_id=data['parking_id'],
+            user=data['user'],
+            start_time=datetime.strptime(data['start_time'], '%Y-%m-%d %H:%M:%S.%f'),
+            end_time=datetime.strptime(data['end_time'], '%Y-%m-%d %H:%M:%S.%f'),
+            cost=data['cost'],
+            paid=False,
+            status='رزرو شده'
+        )
+        park = Parking.query.filter_by(id=data['parking_id']).first()
+        if park.free_capacity - 1 < 0:
+            return jsonify({'message': 'capacity is full!'})
+        park.free_capacity = park.free_capacity - 1
+        db.session.add(reservation)
+        db.session.commit()
+
+        newReservation = Reservation.query.filter_by(guid=data['guid']).first()
+
+        return jsonify({'value': {
+            'id': reservation.id,
+            'guid': reservation.guid,
+            'parking_id': reservation.parking_id,
+            'user': reservation.user,
+            'start_time': reservation.start_time,
+            'end_time': reservation.end_time,
+            'cost': reservation.cost,
+            'paid': reservation.paid,
+            'status': reservation.status
+        }})
+    except Exception as e:
+        return jsonify({'error': str(e)})
+
+
+@app.route("/reservation/delete/<id>", methods=['DELETE'])
+def delete_reservation(id):
+    try:
+        reservation = Reservation.query.filter_by(id=id).first()
+        db.session.delete(reservation)
+        db.session.commit()
+        return jsonify({'message': 'Reservation deleted successfully'})
+    except Exception as e:
+        return jsonify({'error': str(e)})
+
+@app.route("/reservation/getUserReservations/<userid>", methods=['GET'])
+def get_user_reservations(userid):
+    try:
+        reservations = Reservation.query.filter_by(user=userid).all()
+        all = []
+        for item in reservations:
+            all.append(
+                {
+                    'id': item.id,
+                    'guid': item.guid,
+                    'parking_id': item.parking_id,
+                    'user': item.user,
+                    'start_time': item.start_time,
+                    'end_time': item.end_time,
+                    'cost': item.cost,
+                    'paid': item.paid,
+                    'status': item.status
+                })
+
+        return jsonify({'all':all})
+    except Exception as e:
+        return jsonify({'error': str(e)})
+
+
+
 # @app.route("/reservation/update", methods=['PUT'])
 # def update_reservation():
 #     try:
