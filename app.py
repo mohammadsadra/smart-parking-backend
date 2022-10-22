@@ -48,6 +48,28 @@ def on_message(client, userdata, msg):
             client.publish("ipark/getMessage", payload=str(cap), qos=1)
             print('park1 is free')
 
+    if msg.topic == 'ipark/park2':
+        print("its about park2")
+        if str(msg.payload.decode("utf-8")) == '1':
+            cap = update_parking_capacity(-1, 1)
+            print("park2 is filled")
+            client.publish("ipark/getMessage", payload=str(cap), qos=1)
+        elif str(msg.payload.decode("utf-8")) == '0':
+            cap = update_parking_capacity(1, 1)
+            client.publish("ipark/getMessage", payload=str(cap), qos=1)
+            print('park2 is free')
+
+    if msg.topic == 'ipark/park3':
+        print("its about park3")
+        if str(msg.payload.decode("utf-8")) == '1':
+            cap = update_parking_capacity(-1, 1)
+            print("park3 is filled")
+            client.publish("ipark/getMessage", payload=str(cap), qos=1)
+        elif str(msg.payload.decode("utf-8")) == '0':
+            cap = update_parking_capacity(1, 1)
+            client.publish("ipark/getMessage", payload=str(cap), qos=1)
+            print('park3 is free')
+
 
 
 
@@ -96,11 +118,6 @@ client.loop_start()
 
 
 
-
-
-
-
-
 # Swagger configs
 SWAGGER_URL = ''
 API_URL = '/static/swagger.json'
@@ -126,6 +143,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(os.path.curd
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
+
 class Parking(db.Model):
     __tablename__ = 'Parking'
     id = Column(Integer, primary_key=True)
@@ -146,6 +164,7 @@ class Parking(db.Model):
     working_days = Column(String, nullable=False)
     picture = Column(String, nullable=False)
     owner_id = Column(Integer, ForeignKey('User.id'), nullable=False)
+    is_verified = Column(Boolean, nullable=False)
 
 class User(db.Model):
     __tablename__ = 'User'
@@ -217,7 +236,7 @@ def get_all_parking():
         all = []
         for item in parkings:
             all.append({
-                'id':item.id,
+                'id': item.id,
                 'guid': item.guid,
                 'name': item.name,
                 'description': item.description,
@@ -234,7 +253,8 @@ def get_all_parking():
                 'working_hours': item.working_hours,
                 'working_days': item.working_days,
                 'picture': item.picture,
-                'owner_id': item.owner_id
+                'owner_id': item.owner_id,
+                'is_verified': item.is_verified
             })
 
     except Exception as ex:
@@ -258,23 +278,24 @@ def add_parking():
     try:
         data = request.get_json()
         parking = Parking(
-            guid=data['guid'],
+            guid=str(uuid.uuid4()),
             name=data['name'],
             description=data['description'],
             address=data['address'],
             city=data['city'],
             phone=data['phone'],
             total_capacity=data['total_capacity'],
-            free_capacity=data['free_capacity'],
-            reserved_capacity=data['reserved_capacity'],
-            reserved_free_capacity=data['reserved_free_capacity'],
+            free_capacity=data['total_capacity'],
+            reserved_capacity=data['total_capacity'],
+            reserved_free_capacity=data['total_capacity'],
             latitude=data['latitude'],
             longitude=data['longitude'],
             cost=data['cost'],
             working_hours=data['working_hours'],
             working_days=data['working_days'],
             picture=data['picture'],
-            owner_id=data['owner_id']
+            owner_id=data['owner_id'],
+            is_verified=False
         )
         db.session.add(parking)
         db.session.commit()
@@ -307,6 +328,19 @@ def update_parking():
         return jsonify({'message': 'Parking updated successfully'})
     except Exception as e:
         return jsonify({'error': str(e)})
+
+@app.route("/parking/update/isverfied", methods=['PUT'])
+def update_parking_isVerfied():
+    try:
+        data = request.get_json()
+        parking = Parking.query.filter_by(guid=data['guid']).first()
+        parking.is_verified = data['is_verified']
+        print(parking.is_verified)
+        db.session.commit()
+        return jsonify({'message': 'Parking isVerified updated successfully'})
+    except Exception as e:
+        return jsonify({'error': str(e)})
+
 
 @app.route("/parking/delete/<id>", methods=['DELETE'])
 def delete_parking(id):
@@ -416,15 +450,15 @@ def get_user(id):
 @app.route("/user/add", methods=['POST'])
 def add_user():
     try:
+
         data = request.get_json()
         user = User(
-            guid=data['guid'],
+            guid=str(uuid.uuid4()),
             name=data['name'],
             email=data['email'],
-            phone=data['phone'],
             password=data['password'],
-            picture=data['picture'],
-            role=data['role']
+            role=data['role'],
+            city=data['city']
         )
         db.session.add(user)
         db.session.commit()
